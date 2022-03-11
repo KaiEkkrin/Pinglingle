@@ -1,11 +1,19 @@
+using System.Net.NetworkInformation;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.EntityFrameworkCore;
+using Pinglingle.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 builder.Services.AddRazorPages();
+
+// TODO Change this to use PostgreSQL in the docker container
+builder.Services.AddDbContext<MyContext>(
+    options => options.UseInMemoryDatabase("Pinglingle"));
 
 var app = builder.Build();
 
