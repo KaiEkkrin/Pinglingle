@@ -1,5 +1,10 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+
 @inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+@implements IAsyncDisposable
 
 <PageTitle>Index</PageTitle>
 
@@ -13,26 +18,114 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var target in _targets)
+        @foreach (var (address, target) in _targets)
         {
             <tr>
-                <td>@target.Address</td>
-                <td></td>
+                <td>@address</td>
+                <td>@GetSampleString(target)</td>
             </tr>
         }
     </tbody>
 </table>
 
 @code {
-    private List<Target> _targets = new();
+    private static readonly TimeSpan MaxSampleAge = TimeSpan.FromMinutes(5);
+
+    private HubConnection? _hubConnection;
+    private SortedDictionary<string, Target> _targets = new();
+
+    private static string GetSampleString(Target target)
+    {
+        // TODO make nice CSS and all that
+        IEnumerable<int> EnumerateRealSamples()
+        {
+            foreach (var s in target.Samples)
+            {
+                if (s.ResponseTimeMillis.HasValue) yield return s.ResponseTimeMillis.Value;
+            }
+        }
+
+        var realSamples = EnumerateRealSamples().ToList();
+        var minimum = realSamples.Count > 0 ? realSamples.Min() : 0;
+        var average = realSamples.Count > 0 ? realSamples.Average() : 0;
+        var maximum = realSamples.Count > 0 ? realSamples.Max() : 0;
+        return $"{target.Samples.Count} samples : {minimum}ms < {average:00}ms < {maximum}ms";
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        // Fetch the initial list of targets
         var response = await Http.GetFromJsonAsync<List<Target>>("Targets");
         if (response is { } targets)
         {
-            _targets = targets;
+            foreach (var target in targets)
+            {
+                _targets[target.Address] = target;
+            }
+
             StateHasChanged();
+        }
+
+        // For each target, fetch samples within the last 5 minutes
+        var oldest = (DateTimeOffset.UtcNow - MaxSampleAge).ToUnixTimeSeconds();
+        foreach (var (_, target) in _targets)
+        {
+            var samples = await Http.GetFromJsonAsync<List<Sample>>($"Samples?targetId={target.Id}&oldest={oldest}");
+            if (samples is not null)
+            {
+                target.Samples.AddRange(samples);
+            }
+        }
+
+        // Connect the SignalR hub to keep fetching targets and samples
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/pinghub"))
+            .Build();
+
+        _hubConnection.On<Sample>("Sample", sample =>
+        {
+            if (_targets.TryGetValue(sample.Target?.Address ?? string.Empty, out var target))
+            {
+                // Add this sample
+                target.Samples.Add(sample);
+
+                // Remove samples older than 5 minutes. Can assume samples are ordered.
+                var threshold = DateTimeOffset.UtcNow - MaxSampleAge;
+                while (target.Samples.First().Date <= threshold)
+                {
+                    target.Samples.RemoveAt(0);
+                }
+
+                StateHasChanged();
+            }
+        });
+
+        _hubConnection.On<Target>("Target", target =>
+        {
+            if (!_targets.ContainsKey(target.Address))
+            {
+                _targets[target.Address] = target;
+                StateHasChanged();
+            }
+        });
+
+        _hubConnection.On<Target>("TargetDeleted", target =>
+        {
+            if (_targets.ContainsKey(target.Address))
+            {
+                _targets.Remove(target.Address);
+                StateHasChanged();
+            }
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
         }
     }
 }

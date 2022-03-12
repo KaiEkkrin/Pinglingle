@@ -6,7 +6,7 @@ namespace Pinglingle.Server;
 
 internal static class AddressUtility
 {
-    private static readonly TimeSpan PingTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan PingTimeout = TimeSpan.FromSeconds(2);
 
     public static async Task<(IPStatus Status, int? Time)> MeasurePingMillisAsync(
         string address)
