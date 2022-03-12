@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using System.Net.NetworkInformation
 @using Microsoft.AspNetCore.SignalR.Client
 
 @inject HttpClient Http
@@ -45,11 +46,19 @@
             }
         }
 
+        IEnumerable<IPStatus> EnumerateErrors()
+        {
+            foreach (var s in target.Samples)
+            {
+                if (s.ResponseTimeMillis is null) yield return s.Status;
+            }
+        }
+
         var realSamples = EnumerateRealSamples().ToList();
         var minimum = realSamples.Count > 0 ? realSamples.Min() : 0;
         var average = realSamples.Count > 0 ? realSamples.Average() : 0;
         var maximum = realSamples.Count > 0 ? realSamples.Max() : 0;
-        return $"{target.Samples.Count} samples : {minimum}ms < {average:00}ms < {maximum}ms";
+        return $"{target.Samples.Count} samples : {minimum}ms < {average:F2}ms < {maximum}ms, {EnumerateErrors().Count()} errors";
     }
 
     protected override async Task OnInitializedAsync()
