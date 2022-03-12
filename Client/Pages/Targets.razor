@@ -1,0 +1,86 @@
+@page "/targets"
+@inject HttpClient Http
+
+<PageTitle>Targets</PageTitle>
+
+<h1>Targets</h1>
+
+<table class="table table-striped"><tbody>
+    @foreach (var target in _targets)
+    {
+        <tr>
+            <td>@target.Address</td>
+            <td>
+                <button type="button" class="btn btn-danger"
+                        @onclick="(() => DeleteTargetAsync(target.Id))">X</button>
+            </td>
+        </tr>
+    }
+
+    <tr>
+        <td>
+            <input type="text" class="form-control" @bind="_newAddress"
+                   placeholder="Address">
+        </td>
+        <td>
+            <button type="button" class="btn btn-success"
+                    disabled="@IsAddTargetDisabled"
+                    @onclick="AddTargetAsync">+</button>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <p>@_error</p>
+        </td>
+        <td></td>
+    </tr>
+</tbody></table>
+
+@code {
+    private List<Target> _targets = new();
+    private string? _newAddress;
+    private string? _error;
+
+    private bool IsAddTargetDisabled => string.IsNullOrEmpty(_newAddress);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<List<Target>>("Targets");
+        if (response is { } targets)
+        {
+            _targets = targets;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddTargetAsync()
+    {
+        if (string.IsNullOrEmpty(_newAddress)) return;
+        var response = await Http.PostAsJsonAsync(
+            "Targets", new Target { Address = _newAddress });
+        
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<AddTargetResult>();
+        if (result?.Id is long idValue)
+        {
+            _targets.Add(new Target { Id = idValue, Address = _newAddress });
+        }
+        else
+        {
+            _error = result?.Error;
+        }
+        
+        _newAddress = null;
+    }
+
+    private async Task DeleteTargetAsync(long targetId)
+    {
+        var response = await Http.DeleteAsync($"Targets/?targetId={targetId}");
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<bool>();
+        if (result is true)
+        {
+            _targets.RemoveAll(t => t.Id == targetId);
+        }
+    }
+}

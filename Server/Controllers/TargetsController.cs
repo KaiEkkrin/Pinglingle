@@ -35,31 +35,32 @@ public class TargetsController : ControllerBase
     [HttpPost]
     public async Task<AddTargetResult> AddTargetAsync(Target target)
     {
-        // Verify the target address is sane
-        var address = await AddressUtility.ResolveAddressAsync(target.Address);
-        if (address is null) return new AddTargetResult(false, "Failed to lookup address.");
-
         try
         {
+            // Verify the target address is sane
+            var address = await AddressUtility.ResolveAddressAsync(target.Address);
+            if (address is null) return new AddTargetResult(null, "Failed to lookup address.");
+
             _context.Targets!.Add(target);
             await _context.SaveChangesAsync();
-            return new AddTargetResult(true);
+            return new AddTargetResult(target.Id);
         }
         catch (Exception e)
         {
             FailedToAddTargetMessage(_logger, target.Address, e.Message, e);
-            return new AddTargetResult(false, e.Message);
+            return new AddTargetResult(null, e.Message);
         }
     }
 
     [HttpDelete]
-    public async Task DeleteTargetAsync(long targetId)
+    public async Task<bool> DeleteTargetAsync(long targetId)
     {
         var target = await _context.Targets!.Where(t => t.Id == targetId)
             .SingleOrDefaultAsync();
 
-        if (target is null) return;
+        if (target is null) return false;
         _context.Targets!.Remove(target);
         await _context.SaveChangesAsync();
+        return true;
     }
 }
