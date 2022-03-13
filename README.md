@@ -20,3 +20,16 @@ docker run -d --name pingdev -p 5432:5432 -e POSTGRES_PASSWORD=38923673 -e POSTG
 cd Server
 dotnet ef migrations list -- --ConnectionString="Host=localhost;Username=postgres;Password=38923673;Port=5432;Database=pinglingle"
 ```
+
+## Build for, and run on, a Raspberry Pi
+
+[This page](https://pumpingco.de/blog/setup-your-raspberry-pi-for-docker-and-docker-compose/) has some instructions for installing docker and docker-compose on Pi.
+
+I've made a Pi-specific docker-compose file for the project: docker-compose-pi.yml.
+
+Then, clone the Git repository from the Pi and from its root, these commands should build and start up (with autostart!) the system:
+
+```bash
+docker-compose -f docker-compose-pi.yml build
+docker-compose -f docker-compose-pi.yml up -d 
+```

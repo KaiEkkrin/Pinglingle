@@ -11,11 +11,11 @@ COPY Client/ /Client
 COPY Server/ /Server
 COPY Shared/ /Shared
 WORKDIR /Server
-RUN dotnet restore "Pinglingle.Server.csproj"
-RUN dotnet build "Pinglingle.Server.csproj" -c Release -o /app/build
+RUN dotnet restore "Pinglingle.Server.csproj" -r linux-arm
+RUN dotnet build "Pinglingle.Server.csproj" -c Release -o /app/build -r linux-arm
 
 FROM build AS publish
-RUN dotnet publish "Pinglingle.Server.csproj" -c Release -o /app/publish --no-restore
+RUN dotnet publish "Pinglingle.Server.csproj" -c Release -o /app/publish -r linux-arm --no-restore
 
 FROM base AS final
 WORKDIR /app
