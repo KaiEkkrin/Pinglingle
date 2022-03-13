@@ -71,3 +71,7 @@ docker-compose -f docker-compose-pi.yml up -d
 ```
 
 The docker-compose-pi.yml is set up to autostart, etc.
+
+## Other notes
+
+Windows Firewall blocks ICMPv4 ping by default! It's quite easily enabled however, e.g. via these instructions: [How to allow Pings](https://www.thewindowsclub.com/how-to-allow-pings-icmp-echo-requests-through-windows-firewall)
