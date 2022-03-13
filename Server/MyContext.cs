@@ -28,5 +28,9 @@ public class MyContext : DbContext
         modelBuilder.Entity<Target>()
             .HasIndex(t => t.Address)
             .IsUnique();
+
+        modelBuilder.Entity<Target>()
+            .Property(t => t.Frequency)
+            .HasDefaultValue(1);
     }
 }

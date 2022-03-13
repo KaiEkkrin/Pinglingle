@@ -86,7 +86,7 @@ public sealed class PingService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async Task PingTargetsAsync(long _)
+    private async Task PingTargetsAsync(long counter)
     {
         // Kick off a ping of each target in turn with short delays between them.
         // Each ping will run as a task that we start and let go of so that nothing
@@ -97,6 +97,9 @@ public sealed class PingService : IHostedService
         var targets = GetTargets();
         foreach (var target in targets)
         {
+            // Respect ping frequency
+            if ((counter % target.Frequency) != 0) continue;
+
             // Don't keep pinging a target that already has too many of them outstanding:
             var pingsInFlight = _countByTarget.AddOrUpdate(
                 target.Address, _ => 1, (_, f) => f + 1);

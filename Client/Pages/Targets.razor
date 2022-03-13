@@ -5,40 +5,55 @@
 
 <h1>Targets</h1>
 
-<table class="table table-striped"><tbody>
-    @foreach (var target in _targets)
-    {
+<table class="table table-striped">
+    <thead>
         <tr>
-            <td>@target.Address</td>
+            <th>Address</th>
+            <th>Frequency</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var target in _targets)
+        {
+            <tr>
+                <td>@target.Address</td>
+                <td>@target.Frequency</td>
+                <td>
+                    <button type="button" class="btn btn-danger"
+                            @onclick="(() => DeleteTargetAsync(target.Id))">X</button>
+                </td>
+            </tr>
+        }
+
+        <tr>
             <td>
-                <button type="button" class="btn btn-danger"
-                        @onclick="(() => DeleteTargetAsync(target.Id))">X</button>
+                <input type="text" class="form-control" @bind="_newAddress"
+                       placeholder="Address">
+            </td>
+            <td>
+                <input type="number" class="form-control" min="1" max="1000"
+                       @bind="_newFrequency">
+            </td>
+            <td>
+                <button type="button" class="btn btn-success"
+                        disabled="@IsAddTargetDisabled"
+                        @onclick="AddTargetAsync">+</button>
             </td>
         </tr>
-    }
-
-    <tr>
-        <td>
-            <input type="text" class="form-control" @bind="_newAddress"
-                   placeholder="Address">
-        </td>
-        <td>
-            <button type="button" class="btn btn-success"
-                    disabled="@IsAddTargetDisabled"
-                    @onclick="AddTargetAsync">+</button>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <p>@_error</p>
-        </td>
-        <td></td>
-    </tr>
-</tbody></table>
+        <tr>
+            <td>
+                <p>@_error</p>
+            </td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
 
 @code {
     private List<Target> _targets = new();
     private string? _newAddress;
+    private int _newFrequency = 1;
     private string? _error;
 
     private bool IsAddTargetDisabled => string.IsNullOrEmpty(_newAddress);
@@ -57,13 +72,16 @@
     {
         if (string.IsNullOrEmpty(_newAddress)) return;
         var response = await Http.PostAsJsonAsync(
-            "Targets", new Target { Address = _newAddress });
+            "Targets", new Target { Address = _newAddress, Frequency = _newFrequency });
         
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<AddTargetResult>();
         if (result?.Id is long idValue)
         {
-            _targets.Add(new Target { Id = idValue, Address = _newAddress });
+            _targets.Add(new Target
+            {
+                Id = idValue, Address = _newAddress, Frequency = _newFrequency
+            });
         }
         else
         {
@@ -71,6 +89,7 @@
         }
         
         _newAddress = null;
+        _newFrequency = 1;
     }
 
     private async Task DeleteTargetAsync(long targetId)
