@@ -1,5 +1,6 @@
 # From a suggestion I found at
 # https://chrissainty.com/containerising-blazor-applications-with-docker-containerising-a-blazor-server-app/
+# Docker-compose with help from https://github.com/DanWahlin/AspNetCorePostgreSQLDockerApp
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
 EXPOSE 80

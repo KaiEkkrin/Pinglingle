@@ -1,4 +1,3 @@
-using System.Net.NetworkInformation;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Pinglingle.Server;
@@ -6,6 +5,8 @@ using Pinglingle.Server.Hubs;
 using Pinglingle.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddCommandLine(args);
+builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 
@@ -18,13 +19,31 @@ builder.Services.AddResponseCompression(opts =>
         new[] { "application/octet-stream" });
 });
 
-// TODO Change this to use PostgreSQL in the docker container
-builder.Services.AddDbContext<MyContext>(
-    options => options.UseInMemoryDatabase("Pinglingle"));
+if (builder.Configuration["ConnectionString"] is { Length: > 0 } connectionString)
+{
+    builder.Services.AddDbContext<MyContext>(
+        options => options.UseNpgsql(connectionString));
+}
+else
+{
+    builder.Services.AddDbContext<MyContext>(
+        options => options.UseInMemoryDatabase("Pinglingle"));
+}
 
 builder.Services.AddHostedService<PingService>();
 
 var app = builder.Build();
+
+// Apply database migrations, if using a real database.
+using (var scope = app.Services.CreateScope())
+{
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    if (configuration["ConnectionString"] is { Length: > 0 })
+    {
+        var db = scope.ServiceProvider.GetRequiredService<MyContext>();
+        db.Database.Migrate();
+    }
+}
 
 app.UseResponseCompression();
 

@@ -1,0 +1,34 @@
+version: '3.7'
+services:
+  web:
+    container_name: 'pinglingle'
+    image: 'pinglingle'
+    build:
+      context: .
+      dockerfile: pinglingle.dockerfile
+    environment:
+      ConnectionString: Host=pingdb;Username=postgres;Password=18d9jg48;Port=5432;Database=pinglingle
+    ports:
+      - "8080:80"
+    depends_on:
+      - "postgres"
+    networks:
+      - pinglingle-network
+
+  postgres:
+    container_name: 'pingdb'
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: 18d9jg48
+      POSTGRES_DB: pinglingle
+    networks:
+      - pinglingle-network
+    volumes:
+      - pingdb_data:/var/lib/postgresql/data
+
+networks:
+  pinglingle-network:
+    driver: bridge
+
+volumes:
+  pingdb_data:
