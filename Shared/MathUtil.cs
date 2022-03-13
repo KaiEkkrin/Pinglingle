@@ -20,6 +20,6 @@ public static class MathUtil
         var upperP = (double)upperIndex / maxIndex;
         var lerpValue = (normP - lowerP) / (upperP - lowerP);
 
-        return lerpValue * numbers[lowerIndex] + (1.0 - lerpValue) * numbers[upperIndex];
+        return lerpValue * numbers[upperIndex] + (1.0 - lerpValue) * numbers[lowerIndex];
     }
 }
