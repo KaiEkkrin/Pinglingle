@@ -15,7 +15,7 @@
     <thead>
         <tr>
             <th>Address</th>
-            <th>Last 5 minutes (Min &lt; Mean &lt; Max, Errors)</th>
+            <th>Last 5 minutes (5th &lt; 50th &lt; 95th %ile, Errors)</th>
         </tr>
     </thead>
     <tbody>
@@ -55,10 +55,11 @@
         }
 
         var realSamples = EnumerateRealSamples().ToList();
-        var minimum = realSamples.Count > 0 ? realSamples.Min() : 0;
-        var average = realSamples.Count > 0 ? realSamples.Average() : 0;
-        var maximum = realSamples.Count > 0 ? realSamples.Max() : 0;
-        return $"{target.Samples.Count} samples : {minimum}ms < {average:F2}ms < {maximum}ms, {EnumerateErrors().Count()} errors";
+        realSamples.Sort();
+        var p5 = MathUtil.Percentile(realSamples, 5.0);
+        var p50 = MathUtil.Percentile(realSamples, 50.0);
+        var p95 = MathUtil.Percentile(realSamples, 95.0);
+        return $"{target.Samples.Count} samples : {p5:F2}ms < {p50:F2}ms < {p95:F2}ms, {EnumerateErrors().Count()} errors";
     }
 
     protected override async Task OnInitializedAsync()
