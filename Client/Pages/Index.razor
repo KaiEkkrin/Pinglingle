@@ -29,11 +29,14 @@
     </tbody>
 </table>
 
+<p>Last received at: @_lastReceived</p>
+
 @code {
     private static readonly TimeSpan MaxSampleAge = TimeSpan.FromMinutes(5);
 
     private HubConnection? _hubConnection;
     private SortedDictionary<string, Target> _targets = new();
+    private DateTime? _lastReceived;
 
     private static string GetSampleString(Target target)
     {
@@ -87,6 +90,8 @@
             }
         }
 
+        _lastReceived = DateTime.Now;
+
         // Connect the SignalR hub to keep fetching targets and samples
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/pinghub"))
@@ -106,6 +111,7 @@
                     target.Samples.RemoveAt(0);
                 }
 
+                _lastReceived = DateTime.Now;
                 StateHasChanged();
             }
         });
