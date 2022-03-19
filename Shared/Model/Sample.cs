@@ -1,5 +1,5 @@
-using System.Net.NetworkInformation;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Net.NetworkInformation;
 
 namespace Pinglingle.Shared.Model;
 
@@ -30,4 +30,9 @@ public class Sample
     /// The IPStatus value that came back from the ping.
     /// </summary>
     public IPStatus Status { get; set; }
+
+    /// <summary>
+    /// Set to true if this sample has been added to a digest.
+    /// </summary>
+    public bool IsDigested { get; set; }
 }

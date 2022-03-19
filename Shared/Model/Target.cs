@@ -13,5 +13,8 @@ public class Target
     public int Frequency { get; set; } = 1;
 
     [JsonIgnore]
+    public virtual List<Digest> Digests { get; set; } = new();
+
+    [JsonIgnore]
     public virtual List<Sample> Samples { get; set; } = new();
 }

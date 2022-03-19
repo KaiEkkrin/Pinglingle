@@ -30,6 +30,7 @@ else
         options => options.UseInMemoryDatabase("Pinglingle"));
 }
 
+builder.Services.AddHostedService<DigestService>();
 builder.Services.AddHostedService<PingService>();
 
 var app = builder.Build();

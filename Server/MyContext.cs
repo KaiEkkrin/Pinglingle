@@ -10,12 +10,21 @@ public class MyContext : DbContext
     {
     }
 
+    public DbSet<Digest>? Digests { get; set; }
     public DbSet<Sample>? Samples { get; set; }
     public DbSet<Target>? Targets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Digest>()
+            .HasOne(s => s.Target)
+            .WithMany(t => t.Digests)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Digest>().HasIndex(d => d.StartTime);
+        modelBuilder.Entity<Digest>().HasIndex(d => d.TargetId);
 
         modelBuilder.Entity<Sample>()
             .HasOne(s => s.Target)
@@ -24,6 +33,7 @@ public class MyContext : DbContext
 
         modelBuilder.Entity<Sample>().HasIndex(s => s.Date);
         modelBuilder.Entity<Sample>().HasIndex(s => s.TargetId);
+        modelBuilder.Entity<Sample>().HasIndex(s => s.IsDigested);
 
         modelBuilder.Entity<Target>()
             .HasIndex(t => t.Address)
