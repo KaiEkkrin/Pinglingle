@@ -22,4 +22,15 @@ public static class MathUtil
 
         return lerpValue * numbers[upperIndex] + (1.0 - lerpValue) * numbers[lowerIndex];
     }
+
+    public static DateTimeOffset FiveMinuteFloor(DateTimeOffset dateTimeOffset)
+    {
+        var utcDateTime = dateTimeOffset.UtcDateTime;
+        var utcDateTimeFloor = new DateTime(
+            utcDateTime.Year, utcDateTime.Month, utcDateTime.Day,
+            utcDateTime.Hour, utcDateTime.Minute - (utcDateTime.Minute % 5),
+            0, DateTimeKind.Utc);
+
+        return new DateTimeOffset(utcDateTimeFloor, TimeSpan.Zero);
+    }
 }
