@@ -45,7 +45,8 @@
         {
             foreach (var s in target.Samples)
             {
-                if (s.ResponseTimeMillis.HasValue) yield return s.ResponseTimeMillis.Value;
+                if (s.ResponseTimeMillis.HasValue && s.Status == IPStatus.Success)
+                    yield return s.ResponseTimeMillis.Value;
             }
         }
 
@@ -53,7 +54,7 @@
         {
             foreach (var s in target.Samples)
             {
-                if (s.ResponseTimeMillis is null) yield return s.Status;
+                if (s.Status != IPStatus.Success) yield return s.Status;
             }
         }
 
