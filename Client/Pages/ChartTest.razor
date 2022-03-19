@@ -1,0 +1,24 @@
+@page "/charttest"
+
+<PageTitle>Chart test</PageTitle>
+
+<h1>Chart test</h1>
+
+<PlotlyChart @bind-Config="config" @bind-Layout="layout" @bind-Data="data" @ref="chart" />
+
+@code {
+    // See https://github.com/LayTec-AG/Plotly.Blazor
+    PlotlyChart chart = new();
+    Config config = new();
+    Layout layout = new();
+    IList<ITrace> data = new List<ITrace>
+    {
+        new Scatter
+        {
+            Name = "ScatterTrace",
+            Mode = Plotly.Blazor.Traces.ScatterLib.ModeFlag.Lines | Plotly.Blazor.Traces.ScatterLib.ModeFlag.Markers,
+            X = new List<object> { 1, 2, 3 },
+            Y = new List<object> { 1, 2, 3 }
+        }
+    };
+}
