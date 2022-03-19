@@ -1,0 +1,63 @@
+@page "/digests"
+
+@inject HttpClient Http
+
+<PageTitle>Digests</PageTitle>
+
+<h1>Digests</h1>
+
+@foreach (var (address, viewModel) in _viewModels)
+{
+    <h3>@address</h3>
+
+    <!-- TODO No, I don't think it's valid to do things like this. Instead, create
+         a component that renders one chart and owns the one viewmodel, and
+         make the address and digest list parameters of that component (?)
+    -->
+    <PlotlyChart @Config=viewModel.Config
+                 @Layout=viewModel.Layout
+                 @Data=viewModel.Data />
+}
+
+<!-- TODO Navigation between digests for particular dates -->
+
+@code {
+    // TODO Make this a URL parameter, not fixed.
+    private readonly DateTimeOffset _digestDate = DateTimeOffset.Now.Date;
+
+    private SortedDictionary<string, DigestsViewModel> _viewModels = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var targetsById = await GetTargetsAsync();
+
+        // TODO For now this won't be responsive -- you'll need to reload the page to
+        // see updated entries. That should be okay
+        // Fetch the digests.
+        var oldest = _digestDate.ToUnixTimeSeconds();
+        var newest = _digestDate.AddDays(1).ToUnixTimeSeconds();
+        var response = await Http.GetFromJsonAsync<List<Digest>>(
+            $"Digests?oldest={oldest}&newest={newest}");
+        if (response is { } digests)
+        {
+            foreach (var g in response.GroupBy(d => d.TargetId))
+            {
+                if (g.Key is not { } targetId ||
+                    !targetsById.TryGetValue(targetId, out var target)) continue;
+
+                _viewModels[target.Address] = new DigestsViewModel(target.Address, g.ToList());
+            }
+        }
+    }
+
+    private async Task<IDictionary<long, Target>> GetTargetsAsync()
+    {
+        var response = await Http.GetFromJsonAsync<List<Target>>("Targets");
+        if (response is { } targets)
+        {
+            return targets.ToDictionary(t => t.Id);
+        }
+
+        return new Dictionary<long, Target>();
+    }
+}
