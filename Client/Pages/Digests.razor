@@ -1,4 +1,4 @@
-@page "/digests/{date:datetime}"
+@page "/digests"
 
 @inject HttpClient Http
 
@@ -6,56 +6,83 @@
 
 <h1>Digests</h1>
 
-@foreach (var (address, digests) in _digestsByAddress)
-{
-    <DigestChart Title=@address Digests=@digests />
-}
+<DigestCharts Date=@_currentDate TargetsById=@_targetsById />
 
 <div class="container">
     <div class="row">
         <div class="col"></div>
         <div class="col">
-            @(Date.ToShortDateString())
+            @if (ShowEarliestDate)
+            {
+                <button type="button" class="btn btn-link"
+                        @onclick="OnSetEarliestDate">&lt;&lt;</button>
+            }
+            @if (ShowLastDate)
+            {
+                <button type="button" class="btn btn-link"
+                        @onclick="OnSetLastDate">&lt;</button>
+            }
+            @(_currentDate.ToShortDateString())
+            @if (ShowNextDate)
+            {
+                <button type="button" class="btn btn-link"
+                        @onclick="OnSetNextDate">&gt;</button>
+            }
+            @if (ShowLatestDate)
+            {
+                <button type="button" class="btn btn-link"
+                        @onclick="OnSetLatestDate">&gt;&gt;</button>
+            }
         </div>
         <div class="col"></div>
     </div>
 </div>
 
 @code {
-    private readonly DateTime _maxDate = DateTimeOffset.Now.Date;
+    private readonly DateTime _latestDate = DateTimeOffset.Now.Date;
+    private DateTime _earliestDate = DateTimeOffset.Now.Date;
 
-    private SortedDictionary<string, List<Digest>> _digestsByAddress = new();
     private Dictionary<long, Target> _targetsById = new();
 
-    [Parameter]
-    public DateTime Date { get; set; }
+    public DateTime _currentDate { get; set; }
 
-    private DateTime MinDate => _maxDate.AddDays(-6);
+    private bool ShowEarliestDate => _currentDate > _earliestDate.AddDays(1);
+    private bool ShowLastDate => _currentDate > _earliestDate;
+    private bool ShowNextDate => _currentDate < _latestDate;
+    private bool ShowLatestDate => _currentDate < _latestDate.AddDays(-1);
 
     protected override async Task OnInitializedAsync()
     {
+        _currentDate = _latestDate;
         _targetsById = await GetTargetsAsync();
+
+        // Get the oldest sample -- lets us set our min date
+        var response = await Http.GetFromJsonAsync<List<Digest>>("Digests?count=1");
+        if (response is { Count: 1 } oldestSamples)
+        {
+            _earliestDate = oldestSamples[0].StartTime.Date;
+            Console.WriteLine("Received min date {0}", _earliestDate);
+        }
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected void OnSetEarliestDate(MouseEventArgs mouseEventArgs)
     {
-        // TODO For now this won't be responsive -- you'll need to reload the page to
-        // see updated entries. That should be okay
-        // Fetch the digests.
-        var oldest = new DateTimeOffset(Date).ToUnixTimeSeconds();
-        var newest = new DateTimeOffset(Date).AddDays(1).ToUnixTimeSeconds();
-        var response = await Http.GetFromJsonAsync<List<Digest>>(
-            $"Digests?oldest={oldest}&newest={newest}");
-        if (response is { } digests)
-        {
-            foreach (var g in response.GroupBy(d => d.TargetId))
-            {
-                if (g.Key is not { } targetId ||
-                    !_targetsById.TryGetValue(targetId, out var target)) continue;
+        _currentDate = _earliestDate;
+    }
 
-                _digestsByAddress[target.Address] = g.ToList();
-            }
-        }
+    protected void OnSetLastDate(MouseEventArgs mouseEventArgs)
+    {
+        _currentDate = _currentDate.AddDays(-1);
+    }
+
+    protected void OnSetNextDate(MouseEventArgs mouseEventArgs)
+    {
+        _currentDate = _currentDate.AddDays(1);
+    }
+
+    protected void OnSetLatestDate(MouseEventArgs mouseEventArgs)
+    {
+        _currentDate = _latestDate;
     }
 
     private async Task<Dictionary<long, Target>> GetTargetsAsync()

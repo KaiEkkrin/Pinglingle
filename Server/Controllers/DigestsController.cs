@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Pinglingle.Shared.Model;
 
 namespace Pinglingle.Server.Controllers;
 
@@ -16,37 +15,52 @@ public class DigestsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get(long? oldest = null, long? newest = null)
+    public async Task<IActionResult> Get(
+        long? oldest = null, long? newest = null, int? count = null)
     {
-        // There must always be an `oldest`
-        if (!oldest.HasValue) return BadRequest();
-
-        var o = DateTimeOffset.FromUnixTimeSeconds(oldest.Value);
-        if (newest.HasValue)
+        // Some validation
+        switch ((oldest, newest, count))
         {
-            var n = DateTimeOffset.FromUnixTimeSeconds(newest.Value);
-            return Ok(await EnumerateDigestsAsync(o, n));
+            case (null, null, null):
+                return BadRequest();
+
+            case ({ } ov, { } nv, _) when nv < ov:
+                return BadRequest();
+
+            case (_, _, > 10000):
+                return BadRequest();
+            
+            default:
+                break;
         }
 
-        return Ok(await EnumerateDigestsAsync(o));
-    }
+        // Construct the query
+        var query = _context.Digests!.AsNoTracking();
 
-    private Task<List<Digest>> EnumerateDigestsAsync(
-        DateTimeOffset oldest, DateTimeOffset newest)
-    {
-        return _context.Digests!
-            .AsNoTracking()
-            .Where(s => s.StartTime >= oldest && s.StartTime < newest)
-            .OrderBy(s => s.StartTime)
-            .ToListAsync();
-    }
+        // Apply the date filter(s)
+        var o = oldest.HasValue
+            ? (DateTimeOffset?)DateTimeOffset.FromUnixTimeSeconds(oldest.Value)
+            : null;
 
-    private Task<List<Digest>> EnumerateDigestsAsync(DateTimeOffset oldest)
-    {
-        return _context.Digests!
-            .AsNoTracking()
-            .Where(s => s.StartTime >= oldest)
-            .OrderBy(s => s.StartTime)
-            .ToListAsync();
+        var n = newest.HasValue
+            ? (DateTimeOffset?)DateTimeOffset.FromUnixTimeSeconds(newest.Value)
+            : null;
+
+        query = (o, n) switch
+        {
+            ({ } a, { } b) => query.Where(s => s.StartTime >= a && s.StartTime < b),
+            ({ } a, null) => query.Where(s => s.StartTime >= a),
+            (null, { } b) => query.Where(s => s.StartTime < b),
+            _ => query
+        };
+
+        // Order, and apply the count filter
+        query = query.OrderBy(s => s.StartTime);
+        if (count is { } c)
+        {
+            query = query.Take(c);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 }
