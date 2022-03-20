@@ -184,7 +184,10 @@ public sealed class DigestService : IHostedService
         var samplesDeleted = await context.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM \"Samples\" WHERE \"Date\" < {minSampleAge}");
 
-        DeletedOldMessage(_logger, digestsDeleted, samplesDeleted, null);
+        if (digestsDeleted > 0 || samplesDeleted > 0)
+        {
+            DeletedOldMessage(_logger, digestsDeleted, samplesDeleted, null);
+        }
     }
 
     private sealed class DigestState
@@ -214,15 +217,19 @@ public sealed class DigestService : IHostedService
             ErrorCount = 0;
         }
 
-        public Digest CreateDigest(long targetId, DateTimeOffset startTime) => new Digest
+        public Digest CreateDigest(long targetId, DateTimeOffset startTime)
         {
-            TargetId = targetId,
-            StartTime = startTime,
-            SampleCount = ResponseTimes.Count + ErrorCount,
-            Percentile5 = MathUtil.Percentile(ResponseTimes, 5),
-            Percentile50 = MathUtil.Percentile(ResponseTimes, 50),
-            Percentile95 = MathUtil.Percentile(ResponseTimes, 95),
-            ErrorCount = ErrorCount
-        };
+            ResponseTimes.Sort(); // originally forgot this -- really important!
+            return new Digest
+            {
+                TargetId = targetId,
+                StartTime = startTime,
+                SampleCount = ResponseTimes.Count + ErrorCount,
+                Percentile5 = MathUtil.Percentile(ResponseTimes, 5),
+                Percentile50 = MathUtil.Percentile(ResponseTimes, 50),
+                Percentile95 = MathUtil.Percentile(ResponseTimes, 95),
+                ErrorCount = ErrorCount
+            };
+        }
     }
 }

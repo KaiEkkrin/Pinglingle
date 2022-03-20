@@ -6,17 +6,9 @@
 
 <h1>Digests</h1>
 
-@foreach (var (address, viewModel) in _viewModels)
+@foreach (var (address, digests) in _digestsByAddress)
 {
-    <h3>@address</h3>
-
-    <!-- TODO No, I don't think it's valid to do things like this. Instead, create
-         a component that renders one chart and owns the one viewmodel, and
-         make the address and digest list parameters of that component (?)
-    -->
-    <PlotlyChart @Config=viewModel.Config
-                 @Layout=viewModel.Layout
-                 @Data=viewModel.Data />
+    <DigestChart Title=@address Digests=@digests />
 }
 
 <!-- TODO Navigation between digests for particular dates -->
@@ -25,7 +17,7 @@
     // TODO Make this a URL parameter, not fixed.
     private readonly DateTimeOffset _digestDate = DateTimeOffset.Now.Date;
 
-    private SortedDictionary<string, DigestsViewModel> _viewModels = new();
+    private SortedDictionary<string, List<Digest>> _digestsByAddress = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -45,7 +37,7 @@
                 if (g.Key is not { } targetId ||
                     !targetsById.TryGetValue(targetId, out var target)) continue;
 
-                _viewModels[target.Address] = new DigestsViewModel(target.Address, g.ToList());
+                _digestsByAddress[target.Address] = g.ToList();
             }
         }
     }
