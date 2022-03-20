@@ -1,4 +1,4 @@
-@page "/digests"
+@page "/digests/{date:datetime}"
 
 @inject HttpClient Http
 
@@ -11,23 +11,39 @@
     <DigestChart Title=@address Digests=@digests />
 }
 
-<!-- TODO Navigation between digests for particular dates -->
+<div class="container">
+    <div class="row">
+        <div class="col"></div>
+        <div class="col">
+            @(Date.ToShortDateString())
+        </div>
+        <div class="col"></div>
+    </div>
+</div>
 
 @code {
-    // TODO Make this a URL parameter, not fixed.
-    private readonly DateTimeOffset _digestDate = DateTimeOffset.Now.Date;
+    private readonly DateTime _maxDate = DateTimeOffset.Now.Date;
 
     private SortedDictionary<string, List<Digest>> _digestsByAddress = new();
+    private Dictionary<long, Target> _targetsById = new();
+
+    [Parameter]
+    public DateTime Date { get; set; }
+
+    private DateTime MinDate => _maxDate.AddDays(-6);
 
     protected override async Task OnInitializedAsync()
     {
-        var targetsById = await GetTargetsAsync();
+        _targetsById = await GetTargetsAsync();
+    }
 
+    protected override async Task OnParametersSetAsync()
+    {
         // TODO For now this won't be responsive -- you'll need to reload the page to
         // see updated entries. That should be okay
         // Fetch the digests.
-        var oldest = _digestDate.ToUnixTimeSeconds();
-        var newest = _digestDate.AddDays(1).ToUnixTimeSeconds();
+        var oldest = new DateTimeOffset(Date).ToUnixTimeSeconds();
+        var newest = new DateTimeOffset(Date).AddDays(1).ToUnixTimeSeconds();
         var response = await Http.GetFromJsonAsync<List<Digest>>(
             $"Digests?oldest={oldest}&newest={newest}");
         if (response is { } digests)
@@ -35,14 +51,14 @@
             foreach (var g in response.GroupBy(d => d.TargetId))
             {
                 if (g.Key is not { } targetId ||
-                    !targetsById.TryGetValue(targetId, out var target)) continue;
+                    !_targetsById.TryGetValue(targetId, out var target)) continue;
 
                 _digestsByAddress[target.Address] = g.ToList();
             }
         }
     }
 
-    private async Task<IDictionary<long, Target>> GetTargetsAsync()
+    private async Task<Dictionary<long, Target>> GetTargetsAsync()
     {
         var response = await Http.GetFromJsonAsync<List<Target>>("Targets");
         if (response is { } targets)
