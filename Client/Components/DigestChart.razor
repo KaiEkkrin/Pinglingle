@@ -16,11 +16,8 @@
         {
             new XAxis
             {
-                Title = new Plotly.Blazor.LayoutLib.XAxisLib.Title
-                {
-                    Text = "Hour"
-                },
-                Range = new List<object> { 0, 24 },
+                Title = new(),
+                TickFormat = "%H:%M",
                 ZeroLine = true
             }
         },
@@ -66,22 +63,26 @@
             _digests.AddRange(value);
 
             // Set up the chart stuff here.
+            // (Gratuitously adding 1 to all the sample values because I don't want
+            // to be calculating Log10(0)...)
             var startOfDay = _digests.Min(d => d.StartTime).Date;
+            _layout.XAxis[0].Range = new List<object> { startOfDay, startOfDay.AddDays(1) };
+            _layout.XAxis[0].Title.Text = $"Time on {startOfDay.ToShortDateString()}";
             _data.Clear();
             _data.Add(new Bar
             {
                 Name = "5%",
                 Opacity = 0.7m,
-                X = _digests.Select(d => (object)(d.StartTime - startOfDay).TotalHours)
+                X = _digests.Select(d => (object)d.StartTime)
                     .ToList(),
-                Y = _digests.Select(d => (object)d.Percentile5).ToList()
+                Y = _digests.Select(d => (object)(1 + d.Percentile5)).ToList()
             });
 
             _data.Add(new Bar
             {
                 Name = "50%",
                 Opacity = 0.7m,
-                X = _digests.Select(d => (object)(d.StartTime - startOfDay).TotalHours)
+                X = _digests.Select(d => (object)d.StartTime)
                     .ToList(),
                 Y = _digests.Select(d => (object)(d.Percentile50 - d.Percentile5))
                     .ToList()
@@ -91,7 +92,7 @@
             {
                 Name = "95%",
                 Opacity = 0.7m,
-                X = _digests.Select(d => (object)(d.StartTime - startOfDay).TotalHours)
+                X = _digests.Select(d => (object)d.StartTime)
                     .ToList(),
                 Y = _digests.Select(d => (object)(d.Percentile95 - d.Percentile50))
                     .ToList()
@@ -100,7 +101,7 @@
             _data.Add(new Scatter
             {
                 Name = "Error %",
-                X = _digests.Select(d => (object)(d.StartTime - startOfDay).TotalHours)
+                X = _digests.Select(d => (object)d.StartTime)
                     .ToList(),
                 Y = _digests.Select(d => (object)(100 * d.ErrorCount / d.SampleCount))
                     .ToList(),
