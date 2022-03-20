@@ -51,75 +51,61 @@
 
     private IList<ITrace> _data = new List<ITrace>();
 
-    private List<Digest> _digests = new();
+    [Parameter]
+    public IReadOnlyCollection<Digest> Digests { get; set; } = new List<Digest>();
 
     [Parameter]
-    public IReadOnlyCollection<Digest> Digests
+    public string Title { get; set; } = string.Empty;
+
+    protected override void OnParametersSet()
     {
-        get => _digests;
-        set
+        _data.Clear();
+        if (Digests.Count == 0) return;
+
+        // Set up the chart stuff here.
+        // (Gratuitously adding 1 to all the sample values because I don't want
+        // to be calculating Log10(0)...)
+        var startOfDay = Digests.Min(d => d.StartTime).Date;
+        _layout.Title.Text = Title;
+        _layout.XAxis[0].Range = new List<object> { startOfDay, startOfDay.AddDays(1) };
+        _layout.XAxis[0].Title.Text = $"Time on {startOfDay.ToShortDateString()}";
+        _data.Add(new Bar
         {
-            _digests.Clear();
-            _digests.AddRange(value);
+            Name = "5%",
+            Opacity = 0.7m,
+            X = Digests.Select(d => (object)d.StartTime)
+                .ToList(),
+            Y = Digests.Select(d => (object)(1 + d.Percentile5)).ToList()
+        });
 
-            // Set up the chart stuff here.
-            // (Gratuitously adding 1 to all the sample values because I don't want
-            // to be calculating Log10(0)...)
-            var startOfDay = _digests.Min(d => d.StartTime).Date;
-            _layout.XAxis[0].Range = new List<object> { startOfDay, startOfDay.AddDays(1) };
-            _layout.XAxis[0].Title.Text = $"Time on {startOfDay.ToShortDateString()}";
-            _data.Clear();
-            _data.Add(new Bar
-            {
-                Name = "5%",
-                Opacity = 0.7m,
-                X = _digests.Select(d => (object)d.StartTime)
-                    .ToList(),
-                Y = _digests.Select(d => (object)(1 + d.Percentile5)).ToList()
-            });
-
-            _data.Add(new Bar
-            {
-                Name = "50%",
-                Opacity = 0.7m,
-                X = _digests.Select(d => (object)d.StartTime)
-                    .ToList(),
-                Y = _digests.Select(d => (object)(d.Percentile50 - d.Percentile5))
-                    .ToList()
-            });
-
-            _data.Add(new Bar
-            {
-                Name = "95%",
-                Opacity = 0.7m,
-                X = _digests.Select(d => (object)d.StartTime)
-                    .ToList(),
-                Y = _digests.Select(d => (object)(d.Percentile95 - d.Percentile50))
-                    .ToList()
-            });
-
-            _data.Add(new Scatter
-            {
-                Name = "Error %",
-                X = _digests.Select(d => (object)d.StartTime)
-                    .ToList(),
-                Y = _digests.Select(d => (object)(100 * d.ErrorCount / d.SampleCount))
-                    .ToList(),
-                YAxis = "y2"
-            });
-
-            StateHasChanged();
-        }
-    }
-
-    [Parameter]
-    public string Title
-    {
-        get => _layout.Title.Text;
-        set
+        _data.Add(new Bar
         {
-            _layout.Title.Text = value;
-            StateHasChanged();
-        }
+            Name = "50%",
+            Opacity = 0.7m,
+            X = Digests.Select(d => (object)d.StartTime)
+                .ToList(),
+            Y = Digests.Select(d => (object)(d.Percentile50 - d.Percentile5))
+                .ToList()
+        });
+
+        _data.Add(new Bar
+        {
+            Name = "95%",
+            Opacity = 0.7m,
+            X = Digests.Select(d => (object)d.StartTime)
+                .ToList(),
+            Y = Digests.Select(d => (object)(d.Percentile95 - d.Percentile50))
+                .ToList()
+        });
+
+        _data.Add(new Scatter
+        {
+            Name = "Error %",
+            X = Digests.Select(d => (object)d.StartTime)
+                .ToList(),
+            Y = Digests.Select(d => (object)(100 * d.ErrorCount / d.SampleCount))
+                .ToList(),
+            YAxis = "y2"
+        });
     }
 }
