@@ -6,7 +6,7 @@
 
 <h1>Digests</h1>
 
-<DigestCharts Date=@_currentDate TargetsById=@_targetsById />
+<DigestCharts StartDate=@_currentDate TargetsById=@_targetsById />
 
 <div class="container">
     <div class="row">
@@ -22,7 +22,7 @@
                 <button type="button" class="btn btn-link"
                         @onclick="OnSetLastDate">&lt;</button>
             }
-            @(_currentDate.ToShortDateString())
+            @(_currentDate.LocalDateTime.ToShortDateString())
             @if (ShowNextDate)
             {
                 <button type="button" class="btn btn-link"
@@ -39,17 +39,20 @@
 </div>
 
 @code {
-    private readonly DateTime _latestDate = DateTimeOffset.Now.Date;
-    private DateTime _earliestDate = DateTimeOffset.Now.Date;
+    private readonly DateTimeOffset _latestDate =
+        LocalDateUtil.LocalMidnightOn(DateTimeOffset.Now.Date);
+
+    private DateTimeOffset _earliestDate =
+        LocalDateUtil.LocalMidnightOn(DateTimeOffset.Now.Date);
 
     private Dictionary<long, Target> _targetsById = new();
 
-    public DateTime _currentDate { get; set; }
+    public DateTimeOffset _currentDate { get; set; }
 
-    private bool ShowEarliestDate => _currentDate > _earliestDate.AddDays(1);
+    private bool ShowEarliestDate => _currentDate > _earliestDate;
     private bool ShowLastDate => _currentDate > _earliestDate;
     private bool ShowNextDate => _currentDate < _latestDate;
-    private bool ShowLatestDate => _currentDate < _latestDate.AddDays(-1);
+    private bool ShowLatestDate => _currentDate < _latestDate;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,7 +63,7 @@
         var response = await Http.GetFromJsonAsync<List<Digest>>("Digests?count=1");
         if (response is { Count: 1 } oldestSamples)
         {
-            _earliestDate = oldestSamples[0].StartTime.Date;
+            _earliestDate = LocalDateUtil.LocalMidnightOn(oldestSamples[0].StartTime);
             Console.WriteLine("Received min date {0}", _earliestDate);
         }
     }
@@ -72,12 +75,12 @@
 
     protected void OnSetLastDate(MouseEventArgs mouseEventArgs)
     {
-        _currentDate = _currentDate.AddDays(-1);
+        _currentDate = LocalDateUtil.LocalMidnightOn(_currentDate, TimeSpan.FromDays(-1));
     }
 
     protected void OnSetNextDate(MouseEventArgs mouseEventArgs)
     {
-        _currentDate = _currentDate.AddDays(1);
+        _currentDate = LocalDateUtil.LocalMidnightOn(_currentDate, TimeSpan.FromDays(1));
     }
 
     protected void OnSetLatestDate(MouseEventArgs mouseEventArgs)

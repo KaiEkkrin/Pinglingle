@@ -2,17 +2,23 @@
 
 @foreach (var (address, x) in _digestsByAddress)
 {
-    <DigestChart @key=x.Key Title=@address Digests=@x.Digests StartDate=@Date />
+    <DigestChart @key=x.Key
+                 Title=@address Digests=@x.Digests
+                 StartDate=@StartDate
+                 EndDate=@EndDate />
 }
 
 @code {
     private SortedDictionary<string, (string Key, List<Digest> Digests)> _digestsByAddress = new();
 
     [Parameter]
-    public DateTime Date { get; set; }
+    public DateTimeOffset StartDate { get; set; }
 
     [Parameter]
     public Dictionary<long, Target> TargetsById { get; set; } = new();
+
+    public DateTimeOffset EndDate =>
+        LocalDateUtil.LocalMidnightOn(StartDate, TimeSpan.FromDays(1));
 
     protected override async Task OnParametersSetAsync()
     {
@@ -21,8 +27,8 @@
         // TODO For now this won't be responsive -- you'll need to reload the page to
         // see updated entries. That should be okay
         // Fetch the digests.
-        var oldest = new DateTimeOffset(Date).ToUnixTimeSeconds();
-        var newest = new DateTimeOffset(Date).AddDays(1).ToUnixTimeSeconds();
+        var oldest = StartDate.ToUnixTimeSeconds();
+        var newest = EndDate.ToUnixTimeSeconds();
         var response = await Http.GetFromJsonAsync<List<Digest>>(
             $"Digests?oldest={oldest}&newest={newest}");
         if (response is { } digests)

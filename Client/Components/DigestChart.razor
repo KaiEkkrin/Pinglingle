@@ -20,7 +20,7 @@
                 {
                     Text = "Date and time"
                 },
-                TickFormat = "%d %H:%M",
+                TickFormat = "%H:%M",
                 ZeroLine = true
             }
         },
@@ -61,7 +61,10 @@
     public string Title { get; set; } = string.Empty;
 
     [Parameter]
-    public DateTime StartDate { get; set; }
+    public DateTimeOffset StartDate { get; set; }
+
+    [Parameter]
+    public DateTimeOffset EndDate { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -72,12 +75,15 @@
         // (Gratuitously adding 1 to all the sample values because I don't want
         // to be calculating Log10(0)...)
         _layout.Title.Text = Title;
-        _layout.XAxis[0].Range = new List<object> { StartDate, StartDate.AddDays(1) };
+        _layout.XAxis[0].Range = new List<object>
+        {
+            StartDate.LocalDateTime, EndDate.LocalDateTime
+        };
         _data.Add(new Bar
         {
             Name = "5%",
             Opacity = 0.7m,
-            X = Digests.Select(d => (object)d.StartTime)
+            X = Digests.Select(d => (object)d.StartTime.LocalDateTime)
                 .ToList(),
             Y = Digests.Select(d => (object)(1 + d.Percentile5)).ToList()
         });
@@ -86,7 +92,7 @@
         {
             Name = "50%",
             Opacity = 0.7m,
-            X = Digests.Select(d => (object)d.StartTime)
+            X = Digests.Select(d => (object)d.StartTime.LocalDateTime)
                 .ToList(),
             Y = Digests.Select(d => (object)(d.Percentile50 - d.Percentile5))
                 .ToList()
@@ -96,7 +102,7 @@
         {
             Name = "95%",
             Opacity = 0.7m,
-            X = Digests.Select(d => (object)d.StartTime)
+            X = Digests.Select(d => (object)d.StartTime.LocalDateTime)
                 .ToList(),
             Y = Digests.Select(d => (object)(d.Percentile95 - d.Percentile50))
                 .ToList()
@@ -105,7 +111,7 @@
         _data.Add(new Scatter
         {
             Name = "Error %",
-            X = Digests.Select(d => (object)d.StartTime)
+            X = Digests.Select(d => (object)d.StartTime.LocalDateTime)
                 .ToList(),
             Y = Digests.Select(d => (object)(100 * d.ErrorCount / d.SampleCount))
                 .ToList(),
