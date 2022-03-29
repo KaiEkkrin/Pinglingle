@@ -2,7 +2,7 @@
 
 @foreach (var (address, x) in _digestsByAddress)
 {
-    <DigestChart @key=x.Key Title=@address Digests=@x.Digests />
+    <DigestChart @key=x.Key Title=@address Digests=@x.Digests StartDate=@Date />
 }
 
 @code {

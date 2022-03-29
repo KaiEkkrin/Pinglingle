@@ -16,8 +16,11 @@
         {
             new XAxis
             {
-                Title = new(),
-                TickFormat = "%H:%M",
+                Title = new()
+                {
+                    Text = "Date and time"
+                },
+                TickFormat = "%d %H:%M",
                 ZeroLine = true
             }
         },
@@ -57,6 +60,9 @@
     [Parameter]
     public string Title { get; set; } = string.Empty;
 
+    [Parameter]
+    public DateTime StartDate { get; set; }
+
     protected override void OnParametersSet()
     {
         _data.Clear();
@@ -65,10 +71,8 @@
         // Set up the chart stuff here.
         // (Gratuitously adding 1 to all the sample values because I don't want
         // to be calculating Log10(0)...)
-        var startOfDay = Digests.Min(d => d.StartTime).Date;
         _layout.Title.Text = Title;
-        _layout.XAxis[0].Range = new List<object> { startOfDay, startOfDay.AddDays(1) };
-        _layout.XAxis[0].Title.Text = $"Time on {startOfDay.ToShortDateString()}";
+        _layout.XAxis[0].Range = new List<object> { StartDate, StartDate.AddDays(1) };
         _data.Add(new Bar
         {
             Name = "5%",
