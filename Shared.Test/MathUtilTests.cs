@@ -1,7 +1,5 @@
-using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Pinglingle.Shared;
 
 namespace Pinglingle.Shared.Tests;
 
@@ -59,6 +57,7 @@ public class MathUtilTests
     [DataRow("2022-03-19 15:04:59Z", "2022-03-19 15:00:00Z")]
     [DataRow("2022-03-19 15:05:00Z", "2022-03-19 15:05:00Z")]
     [DataRow("2022-03-19 15:13:42Z", "2022-03-19 15:10:00Z")]
+    [DataRow("2022-03-19 15:13:42+01:00", "2022-03-19 14:10:00Z")]
     public void CalculatesCorrectFiveMinuteFloor(
         string dateTimeString, string expectedDateTimeString)
     {
